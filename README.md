@@ -53,3 +53,7 @@ new_points = [[34.05, -118.25, 4.5]]  # Latitude, Longitude, MedInc
 print(kmeans.predict(new_points))
 print(classifier.predict(new_points))
 ```
+
+## Reproducibility
+
+The pipeline uses fixed seeds and stores its configuration and metrics in `data/processed/metrics.json`.
