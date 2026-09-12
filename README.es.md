@@ -1,112 +1,55 @@
-# Plantilla de Proyecto de Ciencia de Datos
+# California Housing: K-Means y clasificación supervisada
 
-Esta plantilla está diseñada para impulsar proyectos de ciencia de datos proporcionando una configuración básica para conexiones de base de datos, procesamiento de datos, y desarrollo de modelos de aprendizaje automático. Incluye una organización estructurada de carpetas para tus conjuntos de datos y un conjunto de paquetes de Python predefinidos necesarios para la mayoría de las tareas de ciencia de datos.
+Este proyecto aplica aprendizaje no supervisado y supervisado al conjunto de datos California Housing. Agrupa viviendas utilizando latitud, longitud e ingreso medio (`MedInc`) y después entrena un clasificador para reproducir las etiquetas generadas por K-Means.
+
+## Flujo implementado
+
+1. Carga y validación de `data/housing.csv`.
+2. División reproducible en entrenamiento (80 %) y prueba (20 %).
+3. Estandarización de `Latitude`, `Longitude` y `MedInc`.
+4. Entrenamiento de K-Means con 6 clusters, `random_state=42` y `n_init=20`.
+5. Predicción de clusters para train y test.
+6. Entrenamiento de `RandomForestClassifier` con las etiquetas de K-Means de train.
+7. Guardado de métricas, datasets etiquetados, gráfico y modelos serializados.
 
 ## Estructura
 
-El proyecto está organizado de la siguiente manera:
+```text
+├── data/housing.csv
+├── data/processed/ (CSV etiquetados, metrics.json y clusters.png)
+├── models/ (kmeans_pipeline.joblib y cluster_classifier.joblib)
+├── src/app.py
+└── requirements.txt
+```
 
-- **`src/app.py`** → Script principal de Python donde correrá tu proyecto.
-- **`src/explore.ipynb`** → Notebook para exploración y pruebas. Una vez finalizada la exploración, migra el código limpio a `app.py`.
-- **`src/utils.py`** → Funciones auxiliares, como conexión a bases de datos.
-- **`requirements.txt`** → Lista de paquetes de Python necesarios.
-- **`models/`** → Contendrá tus clases de modelos SQLAlchemy.
-- **`data/`** → Almacena los datasets en diferentes etapas:
-  - **`data/raw/`** → Datos sin procesar.
-  - **`data/interim/`** → Datos transformados temporalmente.
-  - **`data/processed/`** → Datos listos para análisis.
+## Instalación y ejecución
 
-
-## ⚡ Configuración Inicial en Codespaces (Recomendado)
-
-No es necesario realizar ninguna configuración manual, ya que **Codespaces se configura automáticamente** con los archivos predefinidos que ha creado la academia para ti. Simplemente sigue estos pasos:
-
-1. **Espera a que el entorno se configure automáticamente**.
-   - Todos los paquetes necesarios y la base de datos se instalarán por sí mismos.
-   - El `username` y `db_name` creados automáticamente están en el archivo **`.env`** en la raíz del proyecto.
-2. **Una vez que Codespaces esté listo, puedes comenzar a trabajar inmediatamente**.
-
-
-## 💻 Configuración en Local (Solo si no puedes usar Codespaces)
-
-**Prerrequisitos**
-
-Asegúrate de tener Python 3.11+ instalado en tu máquina. También necesitarás pip para instalar los paquetes de Python.
-
-**Instalación**
-
-Clona el repositorio del proyecto en tu máquina local.
-
-Navega hasta el directorio del proyecto e instala los paquetes de Python requeridos:
+Se recomienda Python 3.11 o superior:
 
 ```bash
 pip install -r requirements.txt
-```
-
-**Crear una base de datos (si es necesario)**
-
-Crea una nueva base de datos dentro del motor Postgres personalizando y ejecutando el siguiente comando: 
-
-```bash
-$ psql -U postgres -c "DO \$\$ BEGIN 
-    CREATE USER mi_usuario WITH PASSWORD 'mi_contraseña'; 
-    CREATE DATABASE mi_base_de_datos OWNER mi_usuario; 
-END \$\$;"
-```
-Conéctate al motor Postgres para usar tu base de datos, manipular tablas y datos: 
-
-```bash
-$ psql -U mi_usuario -d mi_base_de_datos
-```
-
-¡Una vez que estés dentro de PSQL podrás crear tablas, hacer consultas, insertar, actualizar o eliminar datos y mucho más!
-
-**Variables de entorno**
-
-Crea un archivo .env en el directorio raíz del proyecto para almacenar tus variables de entorno, como tu cadena de conexión a la base de datos:
-
-```makefile
-DATABASE_URL="postgresql://<USUARIO>:<CONTRASEÑA>@<HOST>:<PUERTO>/<NOMBRE_BD>"
-
-#example
-DATABASE_URL="postgresql://mi_usuario:mi_contraseña@localhost:5432/mi_base_de_datos"
-```
-
-## Ejecutando la Aplicación
-
-Para ejecutar la aplicación, ejecuta el script app.py desde la raíz del directorio del proyecto:
-
-```bash
 python src/app.py
 ```
 
-## Añadiendo Modelos
+También puede indicarse otro CSV con `python src/app.py --data ruta/al/housing.csv`. El comando muestra las métricas y actualiza los artefactos en `models/` y `data/processed/`.
 
-Para añadir clases de modelos SQLAlchemy, crea nuevos archivos de script de Python dentro del directorio models/. Estas clases deben ser definidas de acuerdo a tu esquema de base de datos.
+## Resultados
 
-Definición del modelo de ejemplo (`models/example_model.py`):
+Con `random_state=42`, el pipeline procesa 20.640 registros (16.512 de train y 4.128 de test), obtiene un silhouette score de train aproximado de **0,394** y alcanza una exactitud aproximada de **0,995** al reproducir el clasificador supervisado las etiquetas de K-Means en test. Esta exactitud mide el acuerdo con etiquetas generadas automáticamente, no con una verdad externa etiquetada.
 
-```py
-from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy import String
-from sqlalchemy.orm import Mapped, mapped_column
+`data/processed/clusters.png` representa longitud y latitud, colorea los puntos según el cluster de K-Means y marca los puntos de test con una `x`. Los clusters dependen principalmente de la posición geográfica, con una contribución adicional de `MedInc`.
 
-Base = declarative_base()
+## Modelos guardados
 
-class ExampleModel(Base):
-    __tablename__ = 'example_table'
-    id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(unique=True)
+- `models/kmeans_pipeline.joblib`: pipeline de `StandardScaler` + `KMeans`.
+- `models/cluster_classifier.joblib`: Random Forest supervisado.
+
+```python
+import joblib
+
+kmeans = joblib.load("models/kmeans_pipeline.joblib")
+classifier = joblib.load("models/cluster_classifier.joblib")
+new_points = [[34.05, -118.25, 4.5]]  # Latitude, Longitude, MedInc
+print(kmeans.predict(new_points))
+print(classifier.predict(new_points))
 ```
-
-## Trabajando con Datos
-
-Puedes colocar tus conjuntos de datos brutos en el directorio data/raw, conjuntos de datos intermedios en data/interim, y los conjuntos de datos procesados listos para el análisis en data/processed.
-
-Para procesar datos, puedes modificar el script app.py para incluir tus pasos de procesamiento de datos, utilizando pandas para la manipulación y análisis de datos.
-
-## Contribuyentes
-
-Esta plantilla fue construida como parte del [Data Science and Machine Learning Bootcamp](https://4geeksacademy.com/us/coding-bootcamps/datascience-machine-learning) de 4Geeks Academy por [Alejandro Sanchez](https://twitter.com/alesanchezr) y muchos otros contribuyentes. Descubre más sobre [los programas BootCamp de 4Geeks Academy](https://4geeksacademy.com/us/programs) aquí.
-
-Otras plantillas y recursos como este se pueden encontrar en la página de GitHub de la escuela.
